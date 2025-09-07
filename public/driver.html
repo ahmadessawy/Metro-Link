@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metro-Link - Driver</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Metro-Link - Driver</h1>
+            <nav>
+                <a href="./index.html">Customer</a>
+                <a href="./driver.html" class="active">Driver</a>
+                <a href="./admin.html">Admin</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="driver-panel">
+                <div class="driver-select">
+                    <label for="driverId">Select Driver:</label>
+                    <select id="driverId">
+                        <option value="">Select a driver</option>
+                    </select>
+                </div>
+
+                <div class="rides-tabs">
+                    <button class="tab-button active" onclick="showTab('available')">Available Rides</button>
+                    <button class="tab-button" onclick="showTab('active')">Active Rides</button>
+                </div>
+
+                <div id="availableRidesTab" class="tab-content">
+                    <h2>Available Rides</h2>
+                    <div id="ridesList"></div>
+                </div>
+
+                <div id="activeRidesTab" class="tab-content hidden">
+                    <h2>Active Rides</h2>
+                    <div id="activeRidesList"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Simulated driver data
+        const drivers = [
+            { id: 1, name: 'Driver 1' },
+            { id: 2, name: 'Driver 2' },
+            { id: 3, name: 'Driver 3' },
+            { id: 4, name: 'Driver 4' },
+            { id: 5, name: 'Driver 5' }
+        ];
+
+        let selectedDriverId = null;
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
+
+            document.getElementById('availableRidesTab').classList.add('hidden');
+            document.getElementById('activeRidesTab').classList.add('hidden');
+            document.getElementById(`${tabName}RidesTab`).classList.remove('hidden');
+        }
+
+        // Populate driver dropdown
+        const driverSelect = document.getElementById('driverId');
+        drivers.forEach(driver => {
+            const option = document.createElement('option');
+            option.value = driver.id;
+            option.textContent = driver.name;
+            driverSelect.appendChild(option);
+        });
+
+        // Handle driver selection
+        driverSelect.addEventListener('change', (e) => {
+            selectedDriverId = parseInt(e.target.value);
+            if (selectedDriverId) {
+                fetchRides();
+                startPolling();
+            }
+        });
+
+        async function fetchRides() {
+            try {
+                const response = await fetch('/api/rides/active');
+                const rides = await response.json();
+                displayAvailableRides(rides.filter(ride => ride.status === 'REQUESTED'));
+                displayActiveRides(rides.filter(ride => 
+                    ride.status === 'ACCEPTED' && 
+                    ride.driverId === selectedDriverId
+                ));
+            } catch (error) {
+                console.error('Error fetching rides:', error);
+            }
+        }
+
+        function displayAvailableRides(rides) {
+            const ridesList = document.getElementById('ridesList');
+            if (rides.length === 0) {
+                ridesList.innerHTML = '<p>No rides available</p>';
+                return;
+            }
+
+            const ridesHtml = rides.map(ride => `
+                <div class="ride-card">
+                    <p><strong>Customer ID:</strong> ${ride.customerId}</p>
+                    <p><strong>Pickup:</strong> ${ride.pickupLocation}</p>
+                    <p><strong>Dropoff:</strong> ${ride.dropoffLocation}</p>
+                    <p><strong>Created:</strong> ${new Date(ride.createdAt).toLocaleString()}</p>
+                    <button onclick="acceptRide('${ride.id}')">Accept Ride</button>
+                </div>
+            `).join('');
+
+            ridesList.innerHTML = ridesHtml;
+        }
+
+        function displayActiveRides(rides) {
+            const activeRidesList = document.getElementById('activeRidesList');
+            if (rides.length === 0) {
+                activeRidesList.innerHTML = '<p>No active rides</p>';
+                return;
+            }
+
+            const ridesHtml = rides.map(ride => `
+                <div class="ride-card active">
+                    <p><strong>Customer ID:</strong> ${ride.customerId}</p>
+                    <p><strong>Pickup:</strong> ${ride.pickupLocation}</p>
+                    <p><strong>Dropoff:</strong> ${ride.dropoffLocation}</p>
+                    <p><strong>Status:</strong> ${ride.status}</p>
+                    <p><strong>Started:</strong> ${new Date(ride.createdAt).toLocaleString()}</p>
+                    <div class="button-group">
+                        <button onclick="completeRide('${ride.id}')" class="success">Complete Ride</button>
+                        <button onclick="cancelRide('${ride.id}')" class="danger">Cancel Ride</button>
+                    </div>
+                </div>
+            `).join('');
+
+            activeRidesList.innerHTML = ridesHtml;
+        }
+
+        async function acceptRide(rideId) {
+            if (!selectedDriverId) {
+                alert('Please select a driver first');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/rides/${rideId}/accept`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ driverId: selectedDriverId })
+                });
+
+                const ride = await response.json();
+                showTab('active');
+                fetchRides();
+            } catch (error) {
+                console.error('Error accepting ride:', error);
+                alert('Failed to accept ride. Please try again.');
+            }
+        }
+
+        async function completeRide(rideId) {
+            try {
+                const response = await fetch(`/api/rides/${rideId}/complete`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const ride = await response.json();
+                alert('Ride completed successfully!');
+                fetchRides();
+            } catch (error) {
+                console.error('Error completing ride:', error);
+                alert('Failed to complete ride. Please try again.');
+            }
+        }
+
+        async function cancelRide(rideId) {
+            if (!confirm('Are you sure you want to cancel this ride?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/rides/${rideId}/cancel`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const ride = await response.json();
+                alert('Ride cancelled successfully!');
+                fetchRides();
+            } catch (error) {
+                console.error('Error cancelling ride:', error);
+                alert('Failed to cancel ride. Please try again.');
+            }
+        }
+
+        function startPolling() {
+            fetchRides();
+            setInterval(fetchRides, 5000);
+        }
+    </script>
+</body>
+</html>

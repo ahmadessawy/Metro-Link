@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: metro-link-api
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: https://yourdomain.com

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metro-Link - Customer</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <script src="./js/dataService.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Metro-Link</h1>
+            <nav>
+                <a href="./index.html" class="active">Customer</a>
+                <a href="./driver.html">Driver</a>
+                <a href="./admin.html">Admin</a>
+            </nav>
+        </header>
+
+        <main>
+            <div id="customerDashboard">
+                <div id="activeRidePanel" class="hidden">
+                    <h2>Your Active Ride</h2>
+                    <div id="activeRideContent" class="status-card"></div>
+                </div>
+
+                <div id="requestRidePanel">
+                    <h2>Request a Ride</h2>
+                    <form id="rideForm">
+                        <div class="form-group">
+                            <label for="customerId">Select Customer:</label>
+                            <select id="customerId" required>
+                                <option value="">Select a customer</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Pickup Location:</label>
+                            <input type="text" id="pickupLocation" placeholder="Enter pickup location" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Dropoff Location:</label>
+                            <input type="text" id="dropoffLocation" placeholder="Enter dropoff location" required>
+                        </div>
+                        <button type="submit" id="requestButton">Request Ride</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Simulated customer data
+        const customers = [
+            { id: 1, name: 'Customer 1' },
+            { id: 2, name: 'Customer 2' },
+            { id: 3, name: 'Customer 3' },
+            { id: 4, name: 'Customer 4' },
+            { id: 5, name: 'Customer 5' },
+            { id: 6, name: 'Customer 6' },
+            { id: 7, name: 'Customer 7' },
+            { id: 8, name: 'Customer 8' },
+            { id: 9, name: 'Customer 9' },
+            { id: 10, name: 'Customer 10' }
+        ];
+
+        let activeRide = null;
+
+        // Populate customer dropdown
+        const customerSelect = document.getElementById('customerId');
+        customers.forEach(customer => {
+            const option = document.createElement('option');
+            option.value = customer.id;
+            option.textContent = customer.name;
+            customerSelect.appendChild(option);
+        });
+
+        // Handle customer selection
+        document.getElementById('customerId').addEventListener('change', async (e) => {
+            const customerId = parseInt(e.target.value);
+            if (customerId) {
+                await checkCustomerActiveRide(customerId);
+            }
+        });
+
+        // Check if customer has active ride
+        function checkCustomerActiveRide(customerId) {
+            const customerRide = dataService.getCustomerActiveRide(customerId);
+
+            if (customerRide) {
+                activeRide = customerRide;
+                showActiveRide(customerRide);
+                document.getElementById('requestRidePanel').style.display = 'none';
+                pollRideStatus(customerRide.id);
+            } else {
+                activeRide = null;
+                document.getElementById('activeRidePanel').classList.add('hidden');
+                document.getElementById('requestRidePanel').style.display = 'block';
+            }
+        }
+
+        // Simulate driver accepting the ride
+    function simulateDriverAcceptance(ride) {
+        // Random delay between 5 and 15 seconds
+        const delay = Math.floor(Math.random() * 10000) + 5000;
+        setTimeout(() => {
+            const driverId = Math.floor(Math.random() * 5) + 1; // Random driver 1-5
+            dataService.acceptRide(ride.id, driverId);
+        }, delay);
+    }
+
+    // Handle ride request
+        document.getElementById('rideForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const customerId = parseInt(document.getElementById('customerId').value);
+            const pickupLocation = document.getElementById('pickupLocation').value;
+            const dropoffLocation = document.getElementById('dropoffLocation').value;
+
+            if (!customerId) {
+                alert('Please select a customer');
+                return;
+            }
+
+            try {
+                const ride = dataService.requestRide(
+                    customerId,
+                    pickupLocation,
+                    dropoffLocation
+                );
+                activeRide = ride;
+                showActiveRide(ride);
+                document.getElementById('requestRidePanel').style.display = 'none';
+                pollRideStatus(ride.id);
+                
+                // Simulate driver accepting the ride
+                simulateDriverAcceptance(ride);
+            } catch (error) {
+                console.error('Error requesting ride:', error);
+                alert('Failed to request ride. Please try again.');
+            }
+        });
+
+        function showActiveRide(ride) {
+            const activeRidePanel = document.getElementById('activeRidePanel');
+            const activeRideContent = document.getElementById('activeRideContent');
+            
+            let statusHtml = `
+                <div class="ride-details">
+                    <h3>Ride Status: ${ride.status}</h3>
+                    <p><strong>Customer ID:</strong> ${ride.customerId}</p>
+                    <p><strong>Pickup:</strong> ${ride.pickupLocation}</p>
+                    <p><strong>Dropoff:</strong> ${ride.dropoffLocation}</p>
+                    <p><strong>Requested:</strong> ${new Date(ride.createdAt).toLocaleString()}</p>
+            `;
+
+            switch (ride.status) {
+                case 'REQUESTED':
+                    statusHtml += `
+                        <div class="status-message">
+                            <p>Looking for a driver...</p>
+                            <div class="loader"></div>
+                        </div>
+                    `;
+                    break;
+                case 'ACCEPTED':
+                    statusHtml += `
+                        <div class="status-message success">
+                            <p>Driver ${ride.driverId} is on the way!</p>
+                            <p>Your ride is confirmed.</p>
+                        </div>
+                    `;
+                    break;
+                case 'COMPLETED':
+                    statusHtml += `
+                        <div class="status-message success">
+                            <p>Ride completed!</p>
+                            <button onclick="resetRideForm()">Request New Ride</button>
+                        </div>
+                    `;
+                    break;
+                case 'CANCELLED':
+                    statusHtml += `
+                        <div class="status-message error">
+                            <p>Ride was cancelled</p>
+                            <button onclick="resetRideForm()">Request New Ride</button>
+                        </div>
+                    `;
+                    break;
+            }
+
+            statusHtml += '</div>';
+            activeRideContent.innerHTML = statusHtml;
+            activeRidePanel.classList.remove('hidden');
+        }
+
+        function resetRideForm() {
+            activeRide = null;
+            document.getElementById('rideForm').reset();
+            document.getElementById('activeRidePanel').classList.add('hidden');
+            document.getElementById('requestRidePanel').style.display = 'block';
+        }
+
+        function pollRideStatus(rideId) {
+            try {
+                const ride = dataService.getRide(rideId);
+                
+                if (ride.status !== activeRide?.status) {
+                    activeRide = ride;
+                    showActiveRide(ride);
+                }
+                
+                if (!['COMPLETED', 'CANCELLED'].includes(ride.status)) {
+                    setTimeout(() => pollRideStatus(rideId), 5000);
+                }
+            } catch (error) {
+                console.error('Error polling ride status:', error);
+            }
+        }
+    </script>
+</body>
+</html>

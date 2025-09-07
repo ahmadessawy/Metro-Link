@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metro-Link - Admin</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Metro-Link - Admin Dashboard</h1>
+            <nav>
+                <a href="./index.html">Customer</a>
+                <a href="./driver.html">Driver</a>
+                <a href="./admin.html" class="active">Admin</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="admin-dashboard">
+                <div class="stats-panel">
+                    <h2>System Statistics</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Total Rides</h3>
+                            <p id="totalRides">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Active Rides</h3>
+                            <p id="activeRides">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Completed Rides</h3>
+                            <p id="completedRides">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Available Drivers</h3>
+                            <p id="availableDrivers">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="active-rides-panel">
+                    <h2>Active Rides</h2>
+                    <div id="activeRidesList"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('totalRides').textContent = stats.totalRides;
+                document.getElementById('activeRides').textContent = stats.activeRides;
+                document.getElementById('completedRides').textContent = stats.completedRides;
+                document.getElementById('availableDrivers').textContent = stats.availableDrivers;
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+            }
+        }
+
+        async function fetchActiveRides() {
+            try {
+                const response = await fetch('/api/rides/active');
+                const rides = await response.json();
+                displayActiveRides(rides);
+            } catch (error) {
+                console.error('Error fetching active rides:', error);
+            }
+        }
+
+        function displayActiveRides(rides) {
+            const ridesList = document.getElementById('activeRidesList');
+            
+            if (rides.length === 0) {
+                ridesList.innerHTML = '<p>No active rides</p>';
+                return;
+            }
+
+            const ridesHtml = rides.map(ride => `
+                <div class="ride-card ${ride.status.toLowerCase()}">
+                    <p><strong>Ride ID:</strong> ${ride.id}</p>
+                    <p><strong>Customer ID:</strong> ${ride.customerId}</p>
+                    <p><strong>Status:</strong> ${ride.status}</p>
+                    <p><strong>Pickup:</strong> ${ride.pickupLocation}</p>
+                    <p><strong>Dropoff:</strong> ${ride.dropoffLocation}</p>
+                    ${ride.driverId ? `<p><strong>Driver ID:</strong> ${ride.driverId}</p>` : ''}
+                    <p><strong>Created:</strong> ${new Date(ride.createdAt).toLocaleString()}</p>
+                </div>
+            `).join('');
+
+            ridesList.innerHTML = ridesHtml;
+        }
+
+        // Initial fetch
+        fetchStats();
+        fetchActiveRides();
+
+        // Poll for updates
+        setInterval(() => {
+            fetchStats();
+            fetchActiveRides();
+        }, 5000);
+    </script>
+</body>
+</html>
