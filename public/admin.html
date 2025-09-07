@@ -72,8 +72,8 @@
 
         async function fetchActiveRides() {
             try {
-                <!-- const response = await fetch(config.apiBaseUrl + '/rides'); -->
-                const response = await fetch(`${config.apiBaseUrl}/rides`);               const rides = await response.json();
+                const response = await fetch(`${config.apiBaseUrl}/rides`);
+                const rides = await response.json();
                 displayActiveRides(rides);
             } catch (error) {
                 console.error('Error fetching active rides:', error);
