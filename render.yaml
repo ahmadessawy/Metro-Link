@@ -7,5 +7,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: ALLOWED_ORIGINS
-        value: https://yourdomain.com
+      - key: PORT
+        value: "10000"
+    autoDeploy: true
