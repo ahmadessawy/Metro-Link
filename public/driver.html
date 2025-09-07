@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metro-Link - Driver</title>
     <link rel="stylesheet" href="./css/style.css">
-    <script defer src="./js/config.js"></script>
+    <!-- Define API URL directly to prevent any path manipulation -->
     <script>
+        const config = {
+            apiBaseUrl: 'https://metro-link-api.onrender.com/api'
+        };
+    </script>
         // Verify API URL is loaded
         window.addEventListener('load', function() {
             console.log('API URL:', config.apiBaseUrl);
@@ -94,7 +98,10 @@
 
         async function fetchRides() {
             try {
-                console.log('Fetching from:', `${config.apiBaseUrl}/rides/active`);
+                console.log('Config object:', config);
+                console.log('API Base URL:', config.apiBaseUrl);
+                const apiUrl = `${config.apiBaseUrl}/rides/active`;
+                console.log('Full API URL:', apiUrl);
                 const response = await fetch(`${config.apiBaseUrl}/rides/active`);
                 
                 if (!response.ok) {
