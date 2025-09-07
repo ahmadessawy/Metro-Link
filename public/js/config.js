@@ -5,7 +5,7 @@ const getApiBaseUrl = () => {
     }
     
     // For production - using Render.com URL
-    return 'YOUR_RENDER_URL/api'; // You'll replace this with your actual Render.com URL
+    return 'https://metro-link-api.onrender.com/api';
 };
 
 const config = {
