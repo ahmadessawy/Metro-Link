@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metro-Link - Driver</title>
     <link rel="stylesheet" href="./css/style.css">
+    <script defer src="./js/config.js"></script>
+    <script>
+        // Verify API URL is loaded
+        window.addEventListener('load', function() {
+            console.log('API URL:', config.apiBaseUrl);
+        });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -87,8 +94,17 @@
 
         async function fetchRides() {
             try {
-                const response = await fetch('/api/rides/active');
-                const rides = await response.json();
+                console.log('Fetching from:', `${config.apiBaseUrl}/rides/active`);
+                const response = await fetch(`${config.apiBaseUrl}/rides/active`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const responseText = await response.text();
+                console.log('Response:', responseText);
+                
+                const rides = JSON.parse(responseText);
                 displayAvailableRides(rides.filter(ride => ride.status === 'REQUESTED'));
                 displayActiveRides(rides.filter(ride => 
                     ride.status === 'ACCEPTED' && 
@@ -150,7 +166,7 @@
             }
 
             try {
-                const response = await fetch(`/api/rides/${rideId}/accept`, {
+                const response = await fetch(`${config.apiBaseUrl}/rides/${rideId}/accept`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ driverId: selectedDriverId })
@@ -167,7 +183,7 @@
 
         async function completeRide(rideId) {
             try {
-                const response = await fetch(`/api/rides/${rideId}/complete`, {
+                const response = await fetch(`${config.apiBaseUrl}/rides/${rideId}/complete`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -187,7 +203,7 @@
             }
 
             try {
-                const response = await fetch(`/api/rides/${rideId}/cancel`, {
+                const response = await fetch(`${config.apiBaseUrl}/rides/${rideId}/cancel`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' }
                 });

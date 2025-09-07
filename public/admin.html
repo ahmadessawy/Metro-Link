@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metro-Link - Admin</title>
     <link rel="stylesheet" href="./css/style.css">
+    <script src="./js/config.js"></script>
 </head>
 <body>
     <div class="container">
@@ -66,7 +67,7 @@
 
         async function fetchActiveRides() {
             try {
-                const response = await fetch('/api/rides/active');
+                const response = await fetch(config.apiBaseUrl + '/rides');
                 const rides = await response.json();
                 displayActiveRides(rides);
             } catch (error) {
